@@ -1,0 +1,497 @@
+/* ==========================================================================
+   JSON Pretty-Print and Minify
+   Visual base: apple-frontend-design (refined minimalism, defined color roles,
+   weight discipline, 4px spacing scale, purposeful motion).
+   Mobile layer: apple-mobile-design (mobile-first min-width queries, >=16px
+   form controls, 44px touch targets, safe-area insets, dvh, no shadows or
+   gradients on any surface).
+   ========================================================================== */
+
+/* ---- Design tokens ------------------------------------------------------- */
+:root {
+  color-scheme: light;
+
+  /* Type. Native system stack: the offline / no-CDN constraint forbids any
+     web font, so we use the platform UI font (San Francisco, Segoe UI) for
+     chrome and a crafted monospace stack for the code areas. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Code", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Color roles */
+  --color-bg: #fbfbfd;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f5f5f7;
+  --color-ink: #1d1d1f;
+  --color-ink-secondary: #424245;
+  --color-ink-tertiary: #6e6e73;
+  --color-border: #d2d2d7;
+  --color-border-strong: #b8b8bd;
+  --color-accent: #0066cc;
+  --color-accent-strong: #0a5bb8;
+
+  --color-success: #0a6b2d;
+  --color-success-bg: #eef7f1;
+  --color-success-border: #bfe3c9;
+  --color-error: #b42318;
+  --color-error-bg: #fdeeec;
+  --color-error-border: #f3c4bf;
+
+  /* Spacing (mobile baseline; widened at >=600px) */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 20px;
+  --space-xl: 28px;
+  --space-2xl: 40px;
+  --space-3xl: 56px;
+
+  /* Shape */
+  --radius: 14px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+
+  /* Motion (lower half of the parent window to keep interaction snappy) */
+  --transition: 160ms ease;
+}
+
+/* ---- Reset --------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1 {
+  margin: 0;
+}
+
+/* ---- Skip link ----------------------------------------------------------- */
+.skip-link {
+  position: absolute;
+  top: var(--space-sm);
+  left: var(--space-sm);
+  z-index: 10;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-accent);
+  color: #fff;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transform: translateY(-150%);
+  transition: transform var(--transition);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* ---- Page shell ---------------------------------------------------------- */
+.page {
+  width: 100%;
+  max-width: 880px;
+  min-height: 100dvh;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  padding-top: max(var(--space-2xl), env(safe-area-inset-top));
+  padding-bottom: max(var(--space-xl), env(safe-area-inset-bottom));
+  padding-left: max(var(--space-lg), env(safe-area-inset-left));
+  padding-right: max(var(--space-lg), env(safe-area-inset-right));
+}
+
+/* ---- Masthead ------------------------------------------------------------ */
+.masthead {
+  margin-bottom: var(--space-2xl);
+}
+
+.brandmark {
+  display: inline-flex;
+  color: var(--color-accent);
+  margin-bottom: var(--space-md);
+}
+
+.masthead__title {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+
+.masthead__help {
+  margin: var(--space-sm) 0 0;
+  max-width: 60ch;
+  color: var(--color-ink-secondary);
+}
+
+/* ---- Tool layout --------------------------------------------------------- */
+.tool {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* ---- Panels (input / output) -------------------------------------------- */
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-md);
+}
+
+.panel--output {
+  background: var(--color-surface-sunken);
+}
+
+.panel__head {
+  margin-bottom: var(--space-sm);
+}
+
+.panel__label,
+.field__label {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-ink-tertiary);
+}
+
+/* ---- Editors (textareas) ------------------------------------------------- */
+.editor {
+  display: block;
+  width: 100%;
+  min-height: 200px;
+  resize: vertical;
+  padding: var(--space-md);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 16px; /* absolute floor: prevents iOS Safari auto-zoom on focus */
+  line-height: 1.55;
+  tab-size: 4;
+}
+
+.editor::placeholder {
+  color: var(--color-ink-tertiary);
+}
+
+.editor--output {
+  background: var(--color-surface);
+}
+
+/* ---- Controls ------------------------------------------------------------ */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.controls__actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.controls__actions .btn {
+  flex: 1 1 0;
+}
+
+.controls__options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.select {
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+/* ---- Checkbox ------------------------------------------------------------ */
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 44px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.checkbox__box {
+  flex: none;
+  display: inline-grid;
+  place-content: center;
+  width: 24px;
+  height: 24px;
+  background: var(--color-surface);
+  color: #fff;
+  border: 1.5px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.checkbox__box svg {
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.checkbox__input:checked + .checkbox__box {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.checkbox__input:checked + .checkbox__box svg {
+  opacity: 1;
+}
+
+.checkbox__input:focus-visible + .checkbox__box {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.checkbox__label {
+  font-size: 16px;
+  color: var(--color-ink);
+}
+
+/* ---- Buttons ------------------------------------------------------------- */
+.btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  min-height: 44px;
+  padding: 0 var(--space-lg);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.btn--primary {
+  min-height: 48px;
+  background: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn--primary:hover {
+  background: var(--color-accent-strong);
+}
+
+.btn--secondary {
+  min-height: 48px;
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
+}
+
+.btn--secondary:hover {
+  background: var(--color-surface-sunken);
+}
+
+.btn--ghost {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-ink);
+}
+
+.btn--ghost:hover {
+  background: var(--color-surface-sunken);
+}
+
+/* ---- Result actions ------------------------------------------------------ */
+.controls__result {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.controls__result .btn {
+  flex: 1 1 0;
+}
+
+/* ---- Status line --------------------------------------------------------- */
+.status {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+  color: var(--color-ink-secondary);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.status__icon {
+  flex: none;
+  display: inline-flex;
+  margin-top: 1px;
+  color: var(--color-ink-tertiary);
+}
+
+.status__text {
+  overflow-wrap: anywhere;
+}
+
+.status[data-state="success"] {
+  color: var(--color-success);
+  background: var(--color-success-bg);
+  border-color: var(--color-success-border);
+}
+
+.status[data-state="success"] .status__icon {
+  color: var(--color-success);
+}
+
+.status[data-state="error"] {
+  color: var(--color-error);
+  background: var(--color-error-bg);
+  border-color: var(--color-error-border);
+}
+
+.status[data-state="error"] .status__icon {
+  color: var(--color-error);
+}
+
+/* ---- Colophon ------------------------------------------------------------ */
+.colophon {
+  margin-top: auto;
+  padding-top: var(--space-2xl);
+  color: var(--color-ink-tertiary);
+  font-size: 13px;
+}
+
+.colophon p {
+  margin: 0;
+}
+
+/* ---- Focus visibility ---------------------------------------------------- */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.editor:focus-visible,
+.select:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 0;
+  border-color: var(--color-accent);
+}
+
+/* ---- Breakpoint: 600px and up ------------------------------------------- */
+@media (min-width: 600px) {
+  :root {
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 40px;
+    --space-2xl: 60px;
+    --space-3xl: 80px;
+  }
+
+  .masthead__title {
+    font-size: 34px;
+  }
+
+  .masthead__help {
+    font-size: 17px;
+  }
+
+  .editor {
+    min-height: 260px;
+  }
+
+  .controls {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .controls__actions .btn {
+    flex: 0 0 auto;
+    min-width: 148px;
+  }
+
+  .controls__result .btn {
+    flex: 0 0 auto;
+    min-width: 140px;
+  }
+}
+
+/* ---- Breakpoint: 900px and up ------------------------------------------- */
+@media (min-width: 900px) {
+  .masthead__title {
+    font-size: 40px;
+    letter-spacing: -0.015em;
+  }
+
+  .editor {
+    min-height: 300px;
+  }
+}
+
+/* ---- Reduced motion ------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
