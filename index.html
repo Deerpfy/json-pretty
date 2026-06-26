@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>JSON Pretty-Print and Minify</title>
-  <meta name="description" content="Paste raw JSON and beautify it with your chosen indent, minify it to one line, or sort its keys. Copy or download the result. Runs entirely offline in your browser.">
+  <meta name="description" content="Load a JSON file or paste raw JSON, then beautify it with your chosen indent, minify it to one line, or sort its keys. Copy or download the result. Runs entirely offline in your browser.">
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#fbfbfd">
   <link rel="stylesheet" href="assets/css/style.css">
@@ -21,13 +21,28 @@
         </svg>
       </span>
       <h1 class="masthead__title">JSON Pretty-Print and Minify</h1>
-      <p class="masthead__help" id="help">Paste raw JSON, then beautify or minify it. Everything runs locally in your browser.</p>
+      <p class="masthead__help" id="help">Paste raw JSON or load a file, then beautify or minify it. Everything runs locally in your browser.</p>
     </header>
 
     <main id="main" class="tool">
       <section class="panel" aria-labelledby="input-label">
         <div class="panel__head">
           <label class="panel__label" id="input-label" for="input">Input</label>
+          <button type="button" id="loadFile" class="btn btn--ghost btn--compact">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <path d="M7 9l5-5 5 5"></path>
+              <path d="M12 4v12"></path>
+            </svg>
+            Load file
+          </button>
+          <input
+            type="file"
+            id="fileInput"
+            class="visually-hidden"
+            accept=".json,.json5,.ndjson,.geojson,.txt,application/json,text/plain"
+            tabindex="-1"
+            aria-hidden="true">
         </div>
         <textarea
           id="input"

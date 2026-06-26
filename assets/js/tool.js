@@ -14,6 +14,7 @@ var sortKeysEl;
 var statusEl;
 var statusIconEl;
 var statusTextEl;
+var fileInputEl;
 
 /* Status icons, one stroke family, swapped by state. Decorative (aria-hidden);
    the status text always carries the meaning. */
@@ -236,6 +237,78 @@ function downloadResult() {
   setStatus('Downloaded formatted.json (' + text.length + ' characters).', 'success');
 }
 
+/* ---- File loading -------------------------------------------------------- */
+/* Soft threshold: above this, note that an in-browser format may be slow.
+   Hard cap: above this, refuse so a huge file cannot freeze the tab. */
+var LARGE_FILE_BYTES = 5 * 1024 * 1024;    /* 5 MB   */
+var MAX_FILE_BYTES = 100 * 1024 * 1024;    /* 100 MB */
+
+/* Compact, human-readable byte size: "850 KB", "4.8 MB", "120 MB". */
+function formatBytes(bytes) {
+  if (bytes < 1024) {
+    return bytes + ' B';
+  }
+  var units = ['KB', 'MB', 'GB', 'TB'];
+  var value = bytes;
+  var i = -1;
+  do {
+    value /= 1024;
+    i++;
+  } while (value >= 1024 && i < units.length - 1);
+  var rounded = value >= 10 ? Math.round(value) : Math.round(value * 10) / 10;
+  return rounded + ' ' + units[i];
+}
+
+/* Read the chosen file straight into the input as raw text. Deliberately does
+   NOT parse or format: dropping the text in is near-instant even for large
+   files, and the user then picks Beautify or Minify when ready. The read is
+   async (FileReader), so the UI stays responsive while a big file streams in. */
+function handleFileSelected(event) {
+  var picker = event.target;
+  var file = picker.files && picker.files[0];
+  /* Clear the picker so choosing the same file again still fires 'change'. The
+     File reference above is already captured, so this does not affect the read. */
+  picker.value = '';
+  if (!file) {
+    return;
+  }
+
+  if (file.size > MAX_FILE_BYTES) {
+    setStatus(
+      file.name + ' is ' + formatBytes(file.size) + ', over the ' +
+        formatBytes(MAX_FILE_BYTES) + ' limit for in-browser loading. Try a smaller file.',
+      'error'
+    );
+    return;
+  }
+
+  var isLarge = file.size > LARGE_FILE_BYTES;
+  setStatus('Reading ' + file.name + ' (' + formatBytes(file.size) + ')…', 'neutral');
+
+  var reader = new FileReader();
+  reader.onload = function () {
+    var text = (typeof reader.result === 'string') ? reader.result : '';
+    /* Strip a single leading BOM so the character count and the first parse are
+       clean; readInput() also guards this, so it is safe either way. */
+    if (text.charCodeAt(0) === 0xfeff) {
+      text = text.slice(1);
+    }
+    inputEl.value = text;
+    outputEl.value = '';   /* loading is not transforming: clear any old result */
+    var message = 'Loaded ' + file.name + ' (' + formatBytes(file.size) + ', ' +
+      text.length + ' characters). Choose Beautify or Minify when ready.';
+    if (isLarge) {
+      message += ' Large file — formatting may take a few seconds.';
+    }
+    setStatus(message, 'success');
+  };
+  reader.onerror = function () {
+    var reason = (reader.error && reader.error.message) ? reader.error.message : 'unknown error';
+    setStatus('Could not read ' + file.name + ': ' + reason + '.', 'error');
+  };
+  reader.readAsText(file);
+}
+
 /* Resolve elements and wire up events. */
 function init() {
   inputEl = document.getElementById('input');
@@ -245,11 +318,18 @@ function init() {
   statusEl = document.getElementById('status');
   statusIconEl = statusEl.querySelector('.status__icon');
   statusTextEl = statusEl.querySelector('.status__text');
+  fileInputEl = document.getElementById('fileInput');
 
   document.getElementById('beautify').addEventListener('click', beautify);
   document.getElementById('minify').addEventListener('click', minify);
   document.getElementById('copy').addEventListener('click', copyResult);
   document.getElementById('download').addEventListener('click', downloadResult);
+
+  /* The visible button proxies the click to the hidden file input. */
+  document.getElementById('loadFile').addEventListener('click', function () {
+    fileInputEl.click();
+  });
+  fileInputEl.addEventListener('change', handleFileSelected);
 }
 
 if (document.readyState === 'loading') {
